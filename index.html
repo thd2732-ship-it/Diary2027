@@ -151,6 +151,9 @@ function isoWeek(dt){var d=new Date(Date.UTC(dt.getFullYear(),dt.getMonth(),dt.g
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function clamp(v,a,b){return Math.min(b,Math.max(a,v));}
 function monIdx(d){return (d.getDay()+6)%7;}
+/* ISO 8601: 주는 월요일 시작, 목요일이 속한 달/해의 주. 그 달의 n번째 목요일 = n주차 */
+function wkInfo(d){var t=new Date(d.getFullYear(),d.getMonth(),d.getDate()+3);return {y:t.getFullYear(),m:t.getMonth(),k:Math.ceil(t.getDate()/7),iso:isoWeek(d)};}
+var TABBG=['#F7D6A8','#F3C6B8','#B8431F','#CFE3F3','#D6EBC9','#F7D6A8','#F3C6B8','#CFE3F3','#D6EBC9','#F7D6A8','#F3C6B8','#CFE3F3'];
 
 /* ---------- 설정 ---------- */
 var ST={tool:'pen',color:'#2F5FA7',sizes:{pen:4,hl:6,erase:6},eraseMode:'partial',textSize:14,fingerDraw:false};
@@ -181,7 +184,7 @@ function buildPages(){
   P.push({id:'yp2',type:'yp',half:1,label:'이얼리플랜 2/2',sec:'yp'});
   for(var i=0;i<13;i++){var y=2026+Math.floor((11+i)/12),m=(11+i)%12;P.push({id:'m-'+y+'-'+(m+1),type:'m',y:y,m:m,label:'먼슬리 '+y+'.'+(m+1),sec:'m'});}
   var d=new Date(2026,10,30);
-  for(var j=0;j<57;j++){P.push({id:'w-'+dkey(d),type:'w',date:new Date(d),label:'위클리 W'+isoWeek(d)+' · '+(d.getMonth()+1)+'.'+d.getDate(),sec:'w'});d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+7);}
+  for(var j=0;j<57;j++){P.push({id:'w-'+dkey(d),type:'w',date:new Date(d),label:'위클리 '+(wkInfo(d).m+1)+'월 '+wkInfo(d).k+'주차 ('+isoWeek(d)+') · '+(d.getMonth()+1)+'.'+d.getDate(),sec:'w'});d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+7);}
   for(var n=1;n<=noteCount;n++)P.push({id:'n-'+n,type:'n',n:n,total:noteCount,label:'무지노트 '+n+'/'+noteCount,sec:'n'});
   PAGES=P;
 }
@@ -223,11 +226,12 @@ function pgYP(half){
 function pgM(y,m,data){
   var dim=new Date(y,m+1,0).getDate(),lead=(new Date(y,m,1).getDay()+6)%7,nRows=Math.ceil((lead+dim)/7),rowH=Math.floor(736/nRows);
   var s='<div style="position:absolute;left:10px;right:10px;top:16px;height:26px;display:flex;align-items:baseline;gap:8px"><span class="serif" style="font-size:20px;line-height:22px;font-weight:600;color:#B8431F">'+(m+1)+'</span><span style="font-size:8px;font-weight:500;letter-spacing:.22em;color:#6B665C">'+y+' '+EN[m]+'</span></div>';
-  s+='<div style="position:absolute;left:10px;right:10px;top:46px;display:grid;grid-template-columns:14px repeat(7,minmax(0,1fr));height:16px;border-top:1px solid #2B2A28;border-bottom:1px solid #CFC6B3;background:#F3EEE2"><div></div>';
+  s+='<div style="position:absolute;left:10px;right:20px;top:46px;display:grid;grid-template-columns:18px repeat(7,minmax(0,1fr));height:16px;border-top:1px solid #2B2A28;border-bottom:1px solid #CFC6B3;background:#F3EEE2"><div></div>';
   KO.forEach(function(t,i){s+='<div style="font-size:8px;font-weight:500;line-height:16px;text-align:center;color:'+(i==5?'#3F67A8':i==6?'#B8431F':'#2B2A28')+'">'+t+'</div>';});
-  s+='</div><div style="position:absolute;left:10px;right:10px;top:62px;border-left:1px solid #E6DFD0">';
+  s+='</div><div style="position:absolute;left:10px;right:20px;top:62px;border-left:1px solid #E6DFD0">';
   for(var r=0;r<nRows;r++){
-    s+='<div style="display:grid;grid-template-columns:14px repeat(7,minmax(0,1fr))"><div style="height:'+rowH+'px;border-right:1px solid #E6DFD0;border-bottom:1px solid #E6DFD0;padding-top:3px;text-align:center;font-size:7px;font-weight:500;color:#6B665C">W'+isoWeek(new Date(y,m,1-lead+r*7))+'</div>';
+    var wi=wkInfo(new Date(y,m,1-lead+r*7));
+    s+='<div style="display:grid;grid-template-columns:18px repeat(7,minmax(0,1fr))"><div style="height:'+rowH+'px;border-right:1px solid #E6DFD0;border-bottom:1px solid #E6DFD0;padding-top:3px;text-align:center;font-size:7px;line-height:9px;font-weight:500;color:'+(wi.m===m?'#6B665C':'#B3AB98')+'">W'+wi.k+'<br>('+wi.iso+')</div>';
     for(var c=0;c<7;c++){
       var dt=new Date(y,m,1-lead+r*7+c),inM=dt.getMonth()==m,k=dkey(dt),hol=HOL[k],color='#2B2A28',bg='transparent';
       if(c==5){color='#3F67A8';bg='#F1F5FA';}
@@ -240,11 +244,16 @@ function pgM(y,m,data){
     }
     s+='</div>';
   }
+  s+='</div><div style="position:absolute;right:0;top:46px;display:flex;flex-direction:column;gap:2px;align-items:flex-end">';
+  for(var t=-1;t<12;t++){
+    var ty=t<0?2026:2027,tm=t<0?11:t,on=(ty===y&&tm===m);
+    s+='<div data-act="mtab" data-id="m-'+ty+'-'+(tm+1)+'" style="width:22px;height:22px;display:flex;justify-content:flex-end"><div style="width:'+(on?18:14)+'px;height:22px;border-radius:4px 0 0 4px;background:'+(on?'#B8431F':'#E8E1D0')+';color:'+(on?'#fff':'#2B2A28')+';font-size:8px;font-weight:700;line-height:22px;text-align:center">'+(t<0?'<span style="display:block;font-size:5.5px;line-height:8px;margin-top:3px">’26</span><span style="display:block;line-height:10px">12</span>':(t+1))+'</div></div>';
+  }
   return s+'</div>';
 }
 function pgW(info,data){
-  var d0=info.date,e=new Date(d0.getFullYear(),d0.getMonth(),d0.getDate()+6),mon=d0.getMonth();
-  var s='<div style="position:absolute;left:10px;top:14px;height:22px;display:flex;align-items:baseline;gap:8px"><span class="serif" style="font-size:16px;line-height:20px;font-weight:600;color:#B8431F">'+(mon+1)+'</span><span style="font-size:8px;font-weight:500;letter-spacing:.22em;color:#6B665C">WEEKLY PLAN</span><span style="font-size:9px;font-weight:500">WEEK '+isoWeek(d0)+' · '+(d0.getMonth()+1)+'.'+d0.getDate()+' – '+(e.getMonth()+1)+'.'+e.getDate()+'</span></div>';
+  var d0=info.date,e=new Date(d0.getFullYear(),d0.getMonth(),d0.getDate()+6),wi=wkInfo(d0),mon=wi.m;
+  var s='<div style="position:absolute;left:10px;top:14px;height:22px;display:flex;align-items:baseline;gap:8px"><span class="serif" style="font-size:16px;line-height:20px;font-weight:600;color:#B8431F">'+(mon+1)+'</span><span style="font-size:8px;font-weight:500;letter-spacing:.22em;color:#6B665C">WEEKLY PLAN</span><span style="font-size:9px;font-weight:500">'+wi.k+'주차 ('+wi.iso+') · '+(d0.getMonth()+1)+'.'+d0.getDate()+' – '+(e.getMonth()+1)+'.'+e.getDate()+'</span></div>';
   s+='<div style="position:absolute;left:10px;right:20px;top:44px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:184px;gap:4px">';
   for(var i=0;i<7;i++){
     var dt=new Date(d0.getFullYear(),d0.getMonth(),d0.getDate()+i),hol=HOL[dkey(dt)],red=(i==6||hol),col=red?'#B8431F':(i==5?'#3F67A8':'#2B2A28'),bg=red?'#FCEFE8':(i==5?'#F1F5FA':'#F7F3E9');
@@ -253,7 +262,6 @@ function pgW(info,data){
   s+='<div style="border:1px solid #D9D0BE;overflow:hidden"><div style="display:flex;align-items:center;height:18px;padding:3px 6px 0;background:#F3EEE2;border-bottom:1px solid #E6DFD0;font-size:7px;font-weight:500;letter-spacing:.2em;color:#6B665C">MEMO</div><div style="height:164px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 21px,#E9E2D2 21px,#E9E2D2 22px)">';
   for(var j=0;j<7;j++)s+='<div data-act="memo" data-i="'+j+'" style="display:flex;align-items:center;gap:6px;height:22px;padding:0 6px">'+chk(!!data.memo[j])+'</div>';
   s+='</div></div></div>';
-  var tabBg=['#F7D6A8','#F3C6B8','#B8431F','#CFE3F3','#D6EBC9','#F7D6A8','#F3C6B8','#CFE3F3','#D6EBC9','#F7D6A8','#F3C6B8','#CFE3F3'];
   s+='<div style="position:absolute;right:0;top:44px;display:flex;flex-direction:column;gap:2px;align-items:flex-end">';
   for(var t=0;t<12;t++){var on=t==mon;s+='<div data-act="wtab" data-m="'+t+'" style="width:22px;height:22px;display:flex;justify-content:flex-end"><div style="width:'+(on?18:14)+'px;height:22px;border-radius:4px 0 0 4px;background:'+(on?'#B8431F':'#E8E1D0')+';color:'+(on?'#fff':'#2B2A28')+';font-size:8px;font-weight:700;line-height:22px;text-align:center">'+(t+1)+'</div></div>';}
   return s+'</div>';
@@ -463,7 +471,8 @@ function doAct(el){
   if(a==='circle'){if(d.circles[k]===ST.color)delete d.circles[k];else d.circles[k]=ST.color;refreshBg(sl);markDirty(sl.info.id);}
   else if(a==='chk'){if(d.checks[k])delete d.checks[k];else d.checks[k]=1;refreshBg(sl);markDirty(sl.info.id);}
   else if(a==='memo'){var i=el.dataset.i;if(d.memo[i])delete d.memo[i];else d.memo[i]=1;refreshBg(sl);markDirty(sl.info.id);}
-  else if(a==='wtab'){var m=parseInt(el.dataset.m,10),yr=sl.info.date.getFullYear();var idx=PAGES.findIndex(function(p){return p.type==='w'&&p.date.getMonth()===m&&p.date.getFullYear()===yr;});if(idx<0)idx=PAGES.findIndex(function(p){return p.type==='w'&&p.date.getMonth()===m&&p.date.getFullYear()===2027;});if(idx>=0)showAt(idx);}
+  else if(a==='mtab'){goId(el.dataset.id);}
+  else if(a==='wtab'){var m=parseInt(el.dataset.m,10),yr=wkInfo(sl.info.date).y;var fw=function(y){return PAGES.findIndex(function(p){if(p.type!=='w')return false;var w=wkInfo(p.date);return w.m===m&&w.y===y;});};var idx=fw(yr);if(idx<0)idx=fw(2027);if(idx>=0)showAt(idx);}
 }
 function handleTap(x,y,gg,allowCreate){
   var p=probe(x,y),sl=S[1];
@@ -674,7 +683,7 @@ var jump={sec:'yp',month:0};
 function ymVal(y,m){return y*12+m;}
 function openSheet(){
   var info=S[1].info;jump.sec=info.sec;
-  if(info.type==='w')jump.month=ymVal(info.date.getFullYear(),info.date.getMonth());
+  if(info.type==='w'){var wz=wkInfo(info.date);jump.month=ymVal(wz.y,wz.m);}
   else if(info.type==='m')jump.month=ymVal(info.y,info.m);
   else jump.month=ymVal(2027,0);
   renderSheet();sheetwrap.classList.remove('hidden');
@@ -697,7 +706,7 @@ function renderSheet(){
     if(jump.sec==='w'){
       var yy=Math.floor(jump.month/12),mm=jump.month%12,first=new Date(yy,mm,1),last=new Date(yy,mm+1,0);
       h+='<div class="lbl"><span>'+(yy===2026?'2026.12':(mm+1)+'월')+' · 주차 선택</span></div>';
-      PAGES.forEach(function(p){if(p.type!=='w')return;var s=p.date,e=new Date(s.getFullYear(),s.getMonth(),s.getDate()+6);if(e>=first&&s<=last){h+='<button class="wk'+(curId===p.id?' on':'')+'" data-go="'+p.id+'"><b>WEEK '+isoWeek(s)+'</b><span>'+(s.getMonth()+1)+'.'+s.getDate()+' – '+(e.getMonth()+1)+'.'+e.getDate()+'</span></button>';}});
+      PAGES.forEach(function(p){if(p.type!=='w')return;var s=p.date,e=new Date(s.getFullYear(),s.getMonth(),s.getDate()+6);var wz2=wkInfo(s);if(wz2.y===yy&&wz2.m===mm){h+='<button class="wk'+(curId===p.id?' on':'')+'" data-go="'+p.id+'"><b>'+wz2.k+'주차 ('+wz2.iso+')</b><span>'+(s.getMonth()+1)+'.'+s.getDate()+' – '+(e.getMonth()+1)+'.'+e.getDate()+'</span></button>';}});
     }
   }else{
     h+='<div class="lbl"><span>노트 페이지</span><span>'+noteCount+'p</span></div><div class="grid5">';
