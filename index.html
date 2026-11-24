@@ -46,6 +46,10 @@ canvas.layer{width:390px;height:844px}
 /* UI overlays */
 #fab{position:fixed;right:0;bottom:0;width:44px;height:44px;border:0;background:transparent;padding:0;display:flex;align-items:center;justify-content:center;z-index:20}
 #fab span{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:14px;background:rgba(43,42,40,.12)}
+#quick{position:fixed;right:44px;bottom:0;height:44px;z-index:20;display:flex}
+#quick button{width:44px;height:44px;border:0;background:transparent;padding:0;display:flex;align-items:center;justify-content:center}
+#quick span{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:14px;background:rgba(43,42,40,.12);color:#2B2A28}
+#quick button.on span{background:#2B2A28;color:#fff}
 #top{position:fixed;left:0;right:0;top:0;z-index:30;height:56px;padding:6px 6px 0;display:flex;align-items:center;gap:2px;background:rgba(255,255,255,.96);border-bottom:1px solid #E6DFD0}
 #plabel{flex:1;min-width:0;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px}
 .ib{width:44px;height:44px;border:0;background:transparent;display:flex;align-items:center;justify-content:center;padding:0;border-radius:10px}
@@ -54,7 +58,7 @@ canvas.layer{width:390px;height:844px}
 #panel{position:fixed;left:12px;right:12px;bottom:12px;z-index:30;padding:8px 10px 10px;background:#fff;border-radius:18px;border:1px solid #E6DFD0;box-shadow:0 8px 28px rgba(43,42,40,.18);max-width:520px;margin:0 auto}
 .grab{width:36px;height:4px;border-radius:2px;background:#CFC6B3;margin:0 auto 8px}
 .tools{display:flex;justify-content:space-between}
-.tool{width:20%;max-width:66px;height:54px;border:0;border-radius:12px;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0;font-size:10px;font-weight:500}
+.tool{flex:1 1 0;min-width:0;max-width:66px;height:54px;border:0;border-radius:12px;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0;font-size:10px;font-weight:500}
 .tool.on{background:#2B2A28;color:#fff}
 .colors{display:flex;justify-content:space-between;margin-top:6px;padding:0 2px}
 .cb{width:44px;height:44px;border:0;background:transparent;display:flex;align-items:center;justify-content:center;padding:0}
@@ -103,6 +107,7 @@ canvas.layer{width:390px;height:844px}
 <body>
 <div id="view"><div id="track"></div></div>
 <button id="fab" aria-label="메뉴 열기"><span><svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="#2B2A28" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12"/></svg></span></button>
+<div id="quick"></div>
 <div id="top" class="hidden"></div>
 <div id="panel" class="hidden"></div>
 <div id="tbar" class="hidden"></div>
@@ -405,7 +410,7 @@ function tbEl(sl,t){
   var ta=el.querySelector('textarea');ta.value=t.t;applyTA(ta,t);
   ta.addEventListener('input',function(){t.t=ta.value;growTA(ta);markDirty(sl.info.id);});
   ta.addEventListener('focus',function(){focusedTB={sl:sl,t:t,ta:ta,el:el};showTbar();});
-  ta.addEventListener('blur',function(){setTimeout(function(){
+  ta.addEventListener('blur',function(ev){if(ev.relatedTarget&&tbar.contains(ev.relatedTarget))return;setTimeout(function(){
     if(document.activeElement&&document.activeElement.tagName==='TEXTAREA')return;
     if(focusedTB&&focusedTB.t===t){focusedTB=null;}
     if(!t.t.trim()){removeText(sl,t);}
@@ -433,12 +438,13 @@ function showTbar(){renderTbar();tbar.classList.remove('hidden');posTbar();}
 function hideTbar(){if(!focusedTB)tbar.classList.add('hidden');}
 function posTbar(){var vv=window.visualViewport;var b=vv?Math.max(0,window.innerHeight-vv.height-vv.offsetTop):0;tbar.style.bottom=b+'px';}
 if(window.visualViewport){window.visualViewport.addEventListener('resize',posTbar);window.visualViewport.addEventListener('scroll',posTbar);}
-['pointerdown','mousedown','touchstart'].forEach(function(ev){tbar.addEventListener(ev,function(e){e.preventDefault();},{passive:false});});
+tbar.addEventListener('mousedown',function(e){e.preventDefault();});
 tbar.addEventListener('click',function(e){
   var b=e.target.closest('button');if(!b)return;
   if(b.dataset.tc){ST.color=b.dataset.tc;if(focusedTB){focusedTB.t.c=ST.color;applyTA(focusedTB.ta,focusedTB.t);markDirty(focusedTB.sl.info.id);}saveSettings();renderTbar();}
   else if(b.dataset.tsz){var i=TSIZES.indexOf(focusedTB?focusedTB.t.s:ST.textSize);if(i<0)i=2;i=clamp(i+parseInt(b.dataset.tsz,10),0,TSIZES.length-1);ST.textSize=TSIZES[i];if(focusedTB){focusedTB.t.s=ST.textSize;applyTA(focusedTB.ta,focusedTB.t);growTA(focusedTB.ta);markDirty(focusedTB.sl.info.id);}saveSettings();}
-  else if(b.dataset.done){if(focusedTB)focusedTB.ta.blur();}
+  else if(b.dataset.done){if(focusedTB)focusedTB.ta.blur();return;}
+  if(focusedTB)focusedTB.ta.focus({preventScroll:true});
 });
 
 /* ---------- 포인터 입력 ---------- */
@@ -588,14 +594,16 @@ view.addEventListener('pointercancel',function(e){endPtr(e,true);});
 function beginPinch(){
   cancelG();var t=touches(),a=t[0],b=t[1];
   var mx=(a.x+b.x)/2,my=(a.y+b.y)/2,s0=fit*Z.z;
-  pinch={d0:Math.max(10,Math.hypot(a.x-b.x,a.y-b.y)),z0:Z.z,cx:(mx-Z.tx)/s0,cy:(my-Z.ty)/s0};
+  pinch={d0:Math.max(10,Math.hypot(a.x-b.x,a.y-b.y)),z0:Z.z,cx:(mx-Z.tx)/s0,cy:(my-Z.ty)/s0,t0:performance.now(),mx0:mx,my0:my,moved:false};
 }
 function updatePinch(){
   var t=touches();if(t.length<2||!pinch)return;var a=t[0],b=t[1];
   var d=Math.hypot(a.x-b.x,a.y-b.y),mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+  if(Math.abs(d-pinch.d0)>16||Math.hypot(mx-pinch.mx0,my-pinch.my0)>16)pinch.moved=true;
   Z.z=clamp(pinch.z0*d/pinch.d0,1,5);var s=fit*Z.z;Z.tx=mx-pinch.cx*s;Z.ty=my-pinch.cy*s;clampZ();applyZ();
 }
-function endPinch(){pinch=null;if(Z.z<1.04)resetZoom();else fitInk();}
+function endPinch(){var pi=pinch;pinch=null;if(Z.z<1.04)resetZoom();else fitInk();
+  if(pi&&!pi.moved&&performance.now()-pi.t0<400&&S[1].info){var had=hist(S[1].info.id).u.length;undo();toast(had?'되돌렸어요':'되돌릴 필기가 없어요');}}
 view.addEventListener('wheel',function(e){
   if(!e.ctrlKey)return;e.preventDefault();
   var s0=fit*Z.z,cx=(e.clientX-Z.tx)/s0,cy=(e.clientY-Z.ty)/s0;
@@ -610,18 +618,24 @@ window.addEventListener('keydown',function(e){
 window.addEventListener('resize',function(){if(focusedTB)return;measure();layoutSlots();Z.z=1;applyZ();clampZ();resetZoom();});
 
 /* ---------- UI ---------- */
-var topEl=$('#top'),panel=$('#panel'),fab=$('#fab'),sheetwrap=$('#sheetwrap'),sheet=$('#sheet'),uiOpen=false;
-function setUI(open){uiOpen=open;topEl.classList.toggle('hidden',!open);panel.classList.toggle('hidden',!open);fab.classList.toggle('hidden',open);if(open){renderTop();renderPanel();}}
+var quickEl=$('#quick'),topEl=$('#top'),panel=$('#panel'),fab=$('#fab'),sheetwrap=$('#sheetwrap'),sheet=$('#sheet'),uiOpen=false;
+function setUI(open){uiOpen=open;topEl.classList.toggle('hidden',!open);panel.classList.toggle('hidden',!open);fab.classList.toggle('hidden',open);quickEl.classList.toggle('hidden',open);if(open){renderTop();renderPanel();}}
 function renderTop(){
   var sl=S[1],h=sl&&sl.info?sl.info.label:'';
   var hh=hist(sl&&sl.info?sl.info.id:'x');
   topEl.innerHTML='<button class="ibw" data-t="jump" aria-label="빠른 이동">'+ico('grid',18)+'<span>이동</span></button><div id="plabel">'+h+'</div><button class="ib" data-t="undo" aria-label="되돌리기"'+(hh.u.length?'':' disabled')+'>'+ico('undo')+'</button><button class="ib" data-t="redo" aria-label="다시 실행"'+(hh.r.length?'':' disabled')+'>'+ico('redo')+'</button><button class="ib" data-t="close" aria-label="닫기">'+ico('close')+'</button>';
 }
 function updateTop(){if(uiOpen)renderTop();}
+function renderQuick(){
+  var h='';[['pen','펜'],['erase','지우개'],['text','타자']].forEach(function(x){h+='<button data-q="'+x[0]+'" class="'+(ST.tool===x[0]?'on':'')+'" aria-label="'+x[1]+'"><span>'+ico(x[0],16,'currentColor',2)+'</span></button>';});
+  quickEl.innerHTML=h;
+}
+quickEl.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;ST.tool=b.dataset.q;renderPanel();if(ST.tool==='text')toast('화면을 누르면 글상자가 생겨요.');});
 function renderPanel(){
+  renderQuick();
   var t=ST.tool,h='<div class="grab"></div><div class="tools">';
   [['text','타자'],['pen','펜'],['hl','형광펜'],['erase','지우개'],['photo','사진']].forEach(function(x){h+='<button class="tool'+(t===x[0]?' on':'')+'" data-tool="'+x[0]+'" aria-label="'+x[1]+'">'+ico(x[0])+'<span>'+x[1]+'</span></button>';});
-  h+='</div>';
+  h+='<button class="tool" data-closeui="1" aria-label="닫기">'+ico('close')+'<span>닫기</span></button></div>';
   if(t==='erase'){
     h+='<div class="seg"><button data-em="partial" class="'+(ST.eraseMode==='partial'?'on':'')+'">문질러 지우기</button><button data-em="stroke" class="'+(ST.eraseMode==='stroke'?'on':'')+'">선 하나씩 지우기</button></div><div class="hint">손글씨도 나중에 지우개로 지울 수 있어요. S펜 버튼을 누른 채 쓰면 잠깐 지우개가 돼요.</div>';
   }else{
@@ -641,6 +655,7 @@ topEl.addEventListener('click',function(e){
 fab.addEventListener('click',function(){setUI(true);});
 panel.addEventListener('click',function(e){
   var b=e.target.closest('button');if(!b)return;
+  if(b.dataset.closeui){setUI(false);return;}
   if(b.dataset.tool){if(b.dataset.tool==='photo'){$('#file').click();return;}ST.tool=b.dataset.tool;renderPanel();}
   else if(b.dataset.color){ST.color=b.dataset.color;saveSettings();renderPanel();}
   else if(b.dataset.em){ST.eraseMode=b.dataset.em;saveSettings();renderPanel();}
@@ -728,14 +743,14 @@ function init(){
     if(r[0]&&r[0].notes)noteCount=r[0].notes;
     if(r[1])Object.assign(ST,r[1]);
     ST.tool='pen';ST.sizes=Object.assign({pen:4,hl:6,erase:6},ST.sizes);
-    buildPages();measure();
+    buildPages();measure();renderQuick();
     for(var i=0;i<3;i++)S.push(makeSlot());
     var h=location.hash.slice(1),start=PAGES.findIndex(function(p){return p.id===h;});
     if(start<0)start=PAGES.findIndex(function(p){return p.id==='yp1';});
     return showAt(start);
   }).then(function(){
     if(location.hash==='#ui')setUI(true);
-    if('serviceWorker' in navigator&&/^https?:/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(function(){});
+    if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)){var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had)location.reload();});navigator.serviceWorker.register('sw.js').catch(function(){});}
   });
 }
 window.__diary={ST:ST,get cur(){return cur;},PAGES:function(){return PAGES;},showAt:showAt,S:function(){return S;},Z:Z};
