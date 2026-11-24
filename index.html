@@ -50,6 +50,8 @@ canvas.layer{width:390px;height:844px}
 #quick button{width:44px;height:44px;border:0;background:transparent;padding:0;display:flex;align-items:center;justify-content:center}
 #quick span{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:14px;background:rgba(43,42,40,.12);color:#2B2A28}
 #quick button.on span{background:#2B2A28;color:#fff}
+#qjump{position:fixed;right:0;bottom:44px;width:44px;height:44px;z-index:20;border:0;background:transparent;padding:0;display:flex;align-items:center;justify-content:center}
+#qjump span{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:14px;background:rgba(43,42,40,.12);color:#2B2A28}
 #top{position:fixed;left:0;right:0;top:0;z-index:30;height:56px;padding:6px 6px 0;display:flex;align-items:center;gap:2px;background:rgba(255,255,255,.96);border-bottom:1px solid #E6DFD0}
 #plabel{flex:1;min-width:0;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px}
 .ib{width:44px;height:44px;border:0;background:transparent;display:flex;align-items:center;justify-content:center;padding:0;border-radius:10px}
@@ -107,6 +109,7 @@ canvas.layer{width:390px;height:844px}
 <body>
 <div id="view"><div id="track"></div></div>
 <button id="fab" aria-label="메뉴 열기"><span><svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="#2B2A28" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12"/></svg></span></button>
+<button id="qjump" aria-label="페이지 이동"><span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg></span></button>
 <div id="quick"></div>
 <div id="top" class="hidden"></div>
 <div id="panel" class="hidden"></div>
@@ -301,7 +304,7 @@ function renderSlot(sl,idx){
 }
 function refreshBg(sl){sl.bg.innerHTML=pageHTML(sl.info,sl.data);}
 function showAt(idx){
-  idx=clamp(idx,0,PAGES.length-1);cur=idx;measure();layoutSlots();
+  idx=clamp(idx,0,PAGES.length-1);cur=idx;DB.set('last',PAGES[idx].id);measure();layoutSlots();
   selImg=null;
   return Promise.all([renderSlot(S[0],idx-1),renderSlot(S[1],idx),renderSlot(S[2],idx+1)]).then(function(){resetZoom();updateTop();});
 }
@@ -312,7 +315,7 @@ function turn(dir){
   turning=true;track.style.transition='transform .22s ease-out';track.style.transform='translateX('+(-dir*vw)+'px)';
   setTimeout(function(){
     if(dir>0)S.push(S.shift());else S.unshift(S.pop());
-    cur=ni;layoutSlots();selImg=null;Z.z=1;Z.tx=ox;Z.ty=oy;applyZ();
+    cur=ni;DB.set('last',PAGES[cur].id);layoutSlots();selImg=null;Z.z=1;Z.tx=ox;Z.ty=oy;applyZ();
     S.forEach(function(sl,i){if(i!==1)setInkScale(sl,3);});
     renderSlot(dir>0?S[2]:S[0],dir>0?cur+1:cur-1);
     turning=false;updateTop();
@@ -619,7 +622,7 @@ window.addEventListener('resize',function(){if(focusedTB)return;measure();layout
 
 /* ---------- UI ---------- */
 var quickEl=$('#quick'),topEl=$('#top'),panel=$('#panel'),fab=$('#fab'),sheetwrap=$('#sheetwrap'),sheet=$('#sheet'),uiOpen=false;
-function setUI(open){uiOpen=open;topEl.classList.toggle('hidden',!open);panel.classList.toggle('hidden',!open);fab.classList.toggle('hidden',open);quickEl.classList.toggle('hidden',open);if(open){renderTop();renderPanel();}}
+function setUI(open){uiOpen=open;topEl.classList.toggle('hidden',!open);panel.classList.toggle('hidden',!open);fab.classList.toggle('hidden',open);quickEl.classList.toggle('hidden',open);$('#qjump').classList.toggle('hidden',open);if(open){renderTop();renderPanel();}}
 function renderTop(){
   var sl=S[1],h=sl&&sl.info?sl.info.label:'';
   var hh=hist(sl&&sl.info?sl.info.id:'x');
@@ -630,6 +633,7 @@ function renderQuick(){
   var h='';[['pen','펜'],['erase','지우개'],['text','타자']].forEach(function(x){h+='<button data-q="'+x[0]+'" class="'+(ST.tool===x[0]?'on':'')+'" aria-label="'+x[1]+'"><span>'+ico(x[0],16,'currentColor',2)+'</span></button>';});
   quickEl.innerHTML=h;
 }
+$('#qjump').addEventListener('click',function(){openSheet();});
 quickEl.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;ST.tool=b.dataset.q;renderPanel();if(ST.tool==='text')toast('화면을 누르면 글상자가 생겨요.');});
 function renderPanel(){
   renderQuick();
@@ -738,7 +742,7 @@ function init(){
   DB.open().then(function(ok){
     if(!ok)toast('저장 공간을 쓸 수 없어요. 이번에만 기록돼요.');
     if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
-    return Promise.all([DB.get('meta'),DB.get('settings')]);
+    return Promise.all([DB.get('meta'),DB.get('settings'),DB.get('last')]);
   }).then(function(r){
     if(r[0]&&r[0].notes)noteCount=r[0].notes;
     if(r[1])Object.assign(ST,r[1]);
@@ -746,6 +750,7 @@ function init(){
     buildPages();measure();renderQuick();
     for(var i=0;i<3;i++)S.push(makeSlot());
     var h=location.hash.slice(1),start=PAGES.findIndex(function(p){return p.id===h;});
+    if(start<0&&r[2])start=PAGES.findIndex(function(p){return p.id===r[2];});
     if(start<0)start=PAGES.findIndex(function(p){return p.id==='yp1';});
     return showAt(start);
   }).then(function(){
