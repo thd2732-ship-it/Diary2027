@@ -262,8 +262,8 @@ function pgW(info,data){
   s+='<div style="border:1px solid #D9D0BE;overflow:hidden"><div style="display:flex;align-items:center;height:18px;padding:3px 6px 0;background:#F3EEE2;border-bottom:1px solid #E6DFD0;font-size:7px;font-weight:500;letter-spacing:.2em;color:#6B665C">MEMO</div><div style="height:164px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 21px,#E9E2D2 21px,#E9E2D2 22px)">';
   for(var j=0;j<7;j++)s+='<div data-act="memo" data-i="'+j+'" style="display:flex;align-items:center;gap:6px;height:22px;padding:0 6px">'+chk(!!data.memo[j])+'</div>';
   s+='</div></div></div>';
-  s+='<div style="position:absolute;right:10px;top:6px;height:34px;display:flex;gap:2px;align-items:flex-end">';
-  for(var t=0;t<12;t++){var on=t==mon;s+='<div data-act="wtab" data-m="'+t+'" style="width:17px;height:34px;display:flex;align-items:flex-end"><div style="width:17px;height:'+(on?26:22)+'px;border-radius:4px 4px 0 0;background:'+(on?'#B8431F':'#E8E1D0')+';color:'+(on?'#fff':'#2B2A28')+';font-size:8px;font-weight:700;line-height:'+(on?26:22)+'px;text-align:center">'+(t+1)+'</div></div>';}
+  s+='<div style="position:absolute;right:10px;top:6px;height:34px;display:flex;gap:1px;align-items:flex-end">';
+  for(var t=-1;t<12;t++){var ty=t<0?2026:2027,tm=t<0?11:t,on=(wi.y===ty&&wi.m===tm);s+='<div data-act="wtab" data-y="'+ty+'" data-m="'+tm+'" style="width:16px;height:34px;display:flex;align-items:flex-end"><div style="width:16px;height:'+(on?26:22)+'px;border-radius:4px 4px 0 0;background:'+(on?'#B8431F':'#E8E1D0')+';color:'+(on?'#fff':'#2B2A28')+';font-size:8px;font-weight:700;line-height:'+(on?26:22)+'px;text-align:center;overflow:hidden">'+(t<0?'<span style="display:block;font-size:5px;line-height:7px;margin-top:3px">’26</span><span style="display:block;line-height:9px">12</span>':(t+1))+'</div></div>';}
   return s+'</div>';
 }
 function pgN(info){
@@ -472,7 +472,7 @@ function doAct(el){
   else if(a==='chk'){if(d.checks[k])delete d.checks[k];else d.checks[k]=1;refreshBg(sl);markDirty(sl.info.id);}
   else if(a==='memo'){var i=el.dataset.i;if(d.memo[i])delete d.memo[i];else d.memo[i]=1;refreshBg(sl);markDirty(sl.info.id);}
   else if(a==='mtab'){goId(el.dataset.id);}
-  else if(a==='wtab'){var m=parseInt(el.dataset.m,10),yr=wkInfo(sl.info.date).y;var fw=function(y){return PAGES.findIndex(function(p){if(p.type!=='w')return false;var w=wkInfo(p.date);return w.m===m&&w.y===y;});};var idx=fw(yr);if(idx<0)idx=fw(2027);if(idx>=0)showAt(idx);}
+  else if(a==='wtab'){var m=parseInt(el.dataset.m,10),yr=parseInt(el.dataset.y,10);var idx=PAGES.findIndex(function(p){if(p.type!=='w')return false;var w=wkInfo(p.date);return w.m===m&&w.y===yr;});if(idx>=0)showAt(idx);}
 }
 function handleTap(x,y,gg,allowCreate){
   var p=probe(x,y),sl=S[1];
