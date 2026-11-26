@@ -37,6 +37,7 @@ body.nopx .page{font-family:var(--base)}
 .hatch{background-image:repeating-linear-gradient(45deg,#B9B7AF 0 1px,transparent 1px 5px)}
 .layer{position:absolute;left:0;top:0;width:390px;height:844px;pointer-events:none}
 canvas.layer{width:390px;height:844px}
+canvas.live.mul{mix-blend-mode:multiply}
 [data-act]{cursor:pointer;pointer-events:auto}
 [data-act] svg{pointer-events:none}
 .im{position:absolute;pointer-events:none}
@@ -483,7 +484,7 @@ function drawStroke(c,st){
   }else drawBrush(c,st,pts,T);
   c.restore();
 }
-function redraw(sl){sl.ictx.clearRect(0,0,PW,PH);if(sl.data)sl.data.strokes.forEach(function(s){drawStroke(sl.ictx,s);});}
+function redraw(sl){sl.ictx.clearRect(0,0,PW,PH);if(!sl.data)return;var a=sl.data.strokes;a.forEach(function(s){if(s.t==='hl')drawStroke(sl.ictx,s);});a.forEach(function(s){if(s.t!=='hl')drawStroke(sl.ictx,s);});}
 var redrawQ=false;
 function redrawSoon(sl){if(redrawQ)return;redrawQ=true;requestAnimationFrame(function(){redrawQ=false;redraw(sl);});}
 function addPt(st,x,y,p){
@@ -836,6 +837,7 @@ function beginSingle(e,hnd){
   if(pen&&(tl==='pen'||tl==='hl')){
     var hl=tl==='hl';
     var bk=hl?'hl':(ST.brush||'pen');var st={t:bk,c:(hl&&ST.color==='#262626')?'#E3B91E':ST.color,w:hl?(6+ST.sizes.hl*2.2):brushW(bk,ST.sizes.pen),p:[]};
+    sl.live.classList.toggle('mul',hl);
     g=Object.assign(b,{mode:'draw',stroke:st,drawn:0});
     var pt=toPage(b,e.clientX,e.clientY);addPt(st,pt[0],pt[1],pressureOf(e));drawLive(g);
   }else if(pen&&tl==='erase'){
@@ -918,7 +920,7 @@ function endPtr(e,cancel){
     sl.lctx.clearRect(0,0,PW,PH);
     var st=gg.stroke;
     if(strokeLen(st)<4&&handleTapProbe(e,gg))return;
-    pushUndo(sl);sl.data.strokes.push(st);drawStroke(sl.ictx,st);markDirty(sl.info.id);
+    pushUndo(sl);sl.data.strokes.push(st);if(st.t==='hl')redraw(sl);else drawStroke(sl.ictx,st);markDirty(sl.info.id);
   }else if(gg.mode==='erase'){
     sl.lctx.clearRect(0,0,PW,PH);
     repaintDirty(gg);if(gg.changed){pushUndo(sl,gg.snap);markDirty(sl.info.id);}
