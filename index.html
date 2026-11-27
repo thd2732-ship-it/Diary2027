@@ -342,7 +342,7 @@ function pgW(info,data){
     else{fg='#F2F0EA';hb='#262626';bg='#F2F0EA';cls='';hbd='#262626';}
     s+='<div style="border:1px solid #262626;overflow:hidden;background:'+bg+'"><div class="'+cls+'" style="display:flex;align-items:baseline;gap:4px;height:18px;padding:3px 6px 0;background-color:'+hb+';border-bottom:1px solid '+hbd+'"><span style="font-size:10px;line-height:14px;color:'+fg+'">'+(dt.getDate()==1?(dt.getMonth()+1)+'/1':dt.getDate())+'</span><span style="font-size:8px;color:'+fg+'">'+KO[i]+'</span><span style="font-size:8px;color:#C65A4B;margin-left:auto">'+(hol||'')+'</span></div><div style="height:164px;overflow:hidden">'+dl(8,22)+'</div></div>';
   }
-  s+='<div style="overflow:hidden"><div style="display:flex;align-items:center;height:18px;padding:3px 6px 0;background:#DEDCD4;font-size:8px;letter-spacing:.22em;color:#5B5A54">MEMO</div><div style="height:166px;border:1px solid #262626;border-top:0;overflow:hidden">';
+  s+='<div style="overflow:hidden"><div style="display:flex;align-items:center;height:18px;padding:3px 6px 0;background:#DEDCD4;font-size:8px;letter-spacing:.22em;color:#5B5A54">MEMO</div><div style="height:166px;overflow:hidden">';
   for(var j=0;j<7;j++)s+='<div data-act="memo" data-i="'+j+'" style="display:flex;align-items:center;gap:6px;height:22px;padding:0 6px;border-bottom:1px dotted #9C9A92">'+chk(!!data.memo[j])+'</div>';
   s+='<div style="height:22px;border-bottom:1px dotted #9C9A92"></div></div></div></div>';
   s+='<div style="position:absolute;right:10px;top:6px;height:34px;display:flex;gap:1px;align-items:flex-end">';
