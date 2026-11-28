@@ -536,7 +536,7 @@ function undo(){var sl=S[1];if(!sl.info)return;var h=hist(sl.info.id);if(!h.u.le
 function redo(){var sl=S[1];if(!sl.info)return;var h=hist(sl.info.id);if(!h.r.length)return;h.u.push(snapOf(sl));restoreSnap(sl,h.r.pop());markDirty(sl.info.id);updateTop();}
 
 /* ---------- 이미지 ---------- */
-var selImg=null,IMC={},IMSRC={},cropOn=null,lastSizeTap=0,IMCLIP=null,lpT2=null;
+var lastTsTap=0,selImg=null,IMC={},IMSRC={},cropOn=null,lastSizeTap=0,IMCLIP=null,lpT2=null;
 function armLP(b){
   clearTimeout(lpT2);
   if(b.type==='pen'&&ST.tool==='erase')return;
@@ -951,7 +951,7 @@ function moveObj(dx,dy){
   else if(g.kind==='iop'){var pp=toPage(g,g.px,g.py),lo=imLocal(o,pp[0],pp[1]);o.o=Math.round(clamp((lo[0]+60)/120,0.1,1)*20)/20;
     var ic0=g.el.querySelector('.ic'),of0=g.el.querySelector('.iop .of'),sp0=g.el.querySelector('.iop span');if(ic0)ic0.style.opacity=o.o;if(of0)of0.style.width=(o.o*100)+'%';if(sp0)sp0.textContent='불투명도 '+Math.round(o.o*100)+'%';}
   else if(g.kind==='irot'){var an=Math.atan2(g.py-g.csy,g.px-g.csx),rr=g.r0+(an-g.a0)*180/Math.PI;rr=((rr%360)+540)%360-180;var q=Math.round(rr/45)*45;if(Math.abs(rr-q)<3.5)rr=q;o.r=Math.round(rr*10)/10;g.el.style.transform='rotate('+o.r+'deg)';}
-  else if(g.kind==='tsize'){o.w=Math.round(clamp(g.ow+dx/sc,60,PW-o.x-2));o.h=Math.round(clamp(g.oh+dy/sc,24,PH-o.y-2));g.el.style.width=o.w+'px';var tta=g.el.querySelector('.ed');if(tta)growTA(tta);}
+  else if(g.kind==='tsize'){o.w=Math.round(clamp(g.ow+dx/sc,12,PW-o.x-2));o.h=Math.round(clamp(g.oh+dy/sc,24,PH-o.y-2));g.el.style.width=o.w+'px';var tta=g.el.querySelector('.ed');if(tta)growTA(tta);}
   else if(g.kind==='isize'){var kk=isizeS(g,g.px,g.py)/g.s0,w=clamp(g.ow*kk,48,760);o.w=Math.round(w);o.h=Math.round(w*g.oh/g.ow);o.x=Math.round(g.ccx-o.w/2);o.y=Math.round(g.ccy-o.h/2);g.el.style.width=o.w+'px';g.el.style.height=o.h+'px';g.el.style.left=o.x+'px';g.el.style.top=o.y+'px';}
 }
 function endPtr(e,cancel){
@@ -974,6 +974,7 @@ function endPtr(e,cancel){
     if(gg.kind==='idel'&&!gg.moved){var i=sl.data.images.indexOf(gg.obj);if(i>=0){pushUndo(sl,gg.snap);sl.data.images.splice(i,1);}selImg=null;buildImgs(sl);}
     else if((gg.kind==='isize'||gg.kind==='icrop')&&!gg.moved){var nw0=Date.now();if(nw0-lastSizeTap<400){lastSizeTap=0;cropOn=(cropOn===gg.obj.id)?null:gg.obj.id;buildImgs(sl);toast(cropOn?'자르기 모드예요. 왼쪽 위 · 오른쪽 아래 모서리를 끌어 잘라요. 오른쪽 아래 칸을 두 번 누르면 크기 조절로 돌아가요.':'크기 조절로 돌아왔어요.');}else lastSizeTap=nw0;}
     else if(gg.kind.charAt(0)==='i'&&gg.moved&&gg.snap){pushUndo(sl,gg.snap);}
+    else if(gg.kind==='tsize'&&!gg.moved){var nt0=Date.now();if(nt0-lastTsTap<400){lastTsTap=0;var ed0=gg.el.querySelector('.ed');gg.el.style.width='max-content';gg.el.style.maxWidth='none';var fw=Math.min(gg.el.offsetWidth+2,PW-gg.obj.x-2);gg.el.style.maxWidth='';gg.obj.w=Math.max(12,Math.round(fw));gg.el.style.width=gg.obj.w+'px';if(ed0)growTA(ed0);toast('글자 폭에 맞췄어요.');}else lastTsTap=nt0;}
     else if(gg.kind==='tdel'&&!gg.moved){if(focusedTB)focusedTB.ta.blur();removeText(sl,gg.obj);}
     markDirty(sl.info.id);
   }else if(gg.mode==='nav'){
